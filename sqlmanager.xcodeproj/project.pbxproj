@@ -6,13 +6,9 @@
 	objectVersion = 77;
 	objects = {
 
-/* Begin PBXBuildFile section */
-		57C8AECD2F68CC430000A8FD /* LICENSE in Sources */ = {isa = PBXBuildFile; fileRef = 57C8AECC2F68CC400000A8FD /* LICENSE */; };
-/* End PBXBuildFile section */
-
 /* Begin PBXFileReference section */
-		5786ED622F66C7B10046AA91 /* sqlmanager.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = sqlmanager.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		57C8AECC2F68CC400000A8FD /* LICENSE */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LICENSE; sourceTree = "<group>"; };
+		5735B43C2F69FD8400FD6A27 /* LICENSE */ = {isa = PBXFileReference; lastKnownFileType = text; path = LICENSE; sourceTree = "<group>"; };
+		5786ED622F66C7B10046AA91 /* SQL Manager.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "SQL Manager.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -37,7 +33,7 @@
 		5786ED592F66C7B10046AA91 = {
 			isa = PBXGroup;
 			children = (
-				57C8AECC2F68CC400000A8FD /* LICENSE */,
+				5735B43C2F69FD8400FD6A27 /* LICENSE */,
 				5786ED642F66C7B10046AA91 /* sqlmanager */,
 				5786ED632F66C7B10046AA91 /* Products */,
 			);
@@ -46,7 +42,7 @@
 		5786ED632F66C7B10046AA91 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				5786ED622F66C7B10046AA91 /* sqlmanager.app */,
+				5786ED622F66C7B10046AA91 /* SQL Manager.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -54,9 +50,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		5786ED612F66C7B10046AA91 /* sqlmanager */ = {
+		5786ED612F66C7B10046AA91 /* SQL Manager */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 5786ED6D2F66C7B10046AA91 /* Build configuration list for PBXNativeTarget "sqlmanager" */;
+			buildConfigurationList = 5786ED6D2F66C7B10046AA91 /* Build configuration list for PBXNativeTarget "SQL Manager" */;
 			buildPhases = (
 				5786ED5E2F66C7B10046AA91 /* Sources */,
 				5786ED5F2F66C7B10046AA91 /* Frameworks */,
@@ -69,11 +65,11 @@
 			fileSystemSynchronizedGroups = (
 				5786ED642F66C7B10046AA91 /* sqlmanager */,
 			);
-			name = sqlmanager;
+			name = "SQL Manager";
 			packageProductDependencies = (
 			);
 			productName = sqlmanager;
-			productReference = 5786ED622F66C7B10046AA91 /* sqlmanager.app */;
+			productReference = 5786ED622F66C7B10046AA91 /* SQL Manager.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -97,6 +93,9 @@
 			knownRegions = (
 				en,
 				Base,
+				uk,
+				ru,
+				de,
 			);
 			mainGroup = 5786ED592F66C7B10046AA91;
 			minimizedProjectReferenceProxies = 1;
@@ -105,7 +104,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				5786ED612F66C7B10046AA91 /* sqlmanager */,
+				5786ED612F66C7B10046AA91 /* SQL Manager */,
 			);
 		};
 /* End PBXProject section */
@@ -125,7 +124,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				57C8AECD2F68CC430000A8FD /* LICENSE in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -261,6 +259,11 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "SQL Manager";
+				INFOPLIST_KEY_CFBundleShortVersionString = "$(MARKETING_VERSION)";
+				INFOPLIST_KEY_CFBundleVersion = "$(CURRENT_PROJECT_VERSION)";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright (c) 2026 Max Vaskevych";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -275,19 +278,20 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.2;
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.0.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.oflance.sqlmanager;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				SDKROOT = auto;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
+				SUPPORTS_MACCATALYST = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2,7";
+				TARGETED_DEVICE_FAMILY = "1,2";
 				XROS_DEPLOYMENT_TARGET = 26.2;
 			};
 			name = Debug;
@@ -305,6 +309,11 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "SQL Manager";
+				INFOPLIST_KEY_CFBundleShortVersionString = "$(MARKETING_VERSION)";
+				INFOPLIST_KEY_CFBundleVersion = "$(CURRENT_PROJECT_VERSION)";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright (c) 2026 Max Vaskevych";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -319,19 +328,20 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.2;
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.0.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.oflance.sqlmanager;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				SDKROOT = auto;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
+				SUPPORTS_MACCATALYST = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2,7";
+				TARGETED_DEVICE_FAMILY = "1,2";
 				XROS_DEPLOYMENT_TARGET = 26.2;
 			};
 			name = Release;
@@ -348,7 +358,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		5786ED6D2F66C7B10046AA91 /* Build configuration list for PBXNativeTarget "sqlmanager" */ = {
+		5786ED6D2F66C7B10046AA91 /* Build configuration list for PBXNativeTarget "SQL Manager" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				5786ED6E2F66C7B10046AA91 /* Debug */,

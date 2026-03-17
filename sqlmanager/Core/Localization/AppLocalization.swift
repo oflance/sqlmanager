@@ -95,6 +95,7 @@ enum L10n {
         "nav.profiles": [.en: "Profiles", .ua: "Профілі", .ru: "Профили", .de: "Profile"],
         "action.add_folder": [.en: "Add Folder", .ua: "Додати папку", .ru: "Добавить папку", .de: "Ordner hinzufügen"],
         "action.add_profile": [.en: "Add Profile", .ua: "Додати профіль", .ru: "Добавить профиль", .de: "Profil hinzufügen"],
+        "placeholder.sidebar_filter": [.en: "Filter profiles and folders", .ua: "Фільтр профілів і папок", .ru: "Фильтр профилей и папок", .de: "Profile und Ordner filtern"],
         "action.delete": [.en: "Delete", .ua: "Видалити", .ru: "Удалить", .de: "Löschen"],
         "action.opened_connections": [.en: "Opened Connections", .ua: "Відкриті підключення", .ru: "Открытые подключения", .de: "Geöffnete Verbindungen"],
         "action.settings": [.en: "Settings", .ua: "Налаштування", .ru: "Настройки", .de: "Einstellungen"],

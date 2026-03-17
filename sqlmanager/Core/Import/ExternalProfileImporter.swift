@@ -296,7 +296,7 @@ enum ExternalProfileImporter {
         )
     }
 
-    private static func deduplicate(_ profiles: [ImportedProfile]) -> [ImportedProfile] {
+    nonisolated private static func deduplicate(_ profiles: [ImportedProfile]) -> [ImportedProfile] {
         var seen = Set<String>()
         var unique: [ImportedProfile] = []
 
@@ -318,7 +318,7 @@ enum ExternalProfileImporter {
         return unique
     }
 
-    private static func collectDictionaries(in object: Any, result: inout [[String: Any]]) {
+    nonisolated private static func collectDictionaries(in object: Any, result: inout [[String: Any]]) {
         if let dictionary = object as? [String: Any] {
             result.append(dictionary)
             for value in dictionary.values {
@@ -334,7 +334,7 @@ enum ExternalProfileImporter {
         }
     }
 
-    private static func isLikelyFavorite(_ dictionary: [String: Any]) -> Bool {
+    nonisolated private static func isLikelyFavorite(_ dictionary: [String: Any]) -> Bool {
         let hasHost = stringValue(for: ["Host", "host", "Hostname", "hostname", "Socket", "socket"], in: dictionary) != nil
         let hasIdentity = stringValue(for: ["Name", "name", "Nickname", "nickname"], in: dictionary) != nil
             || stringValue(for: ["Database", "database"], in: dictionary) != nil
@@ -342,7 +342,7 @@ enum ExternalProfileImporter {
         return hasHost && hasIdentity
     }
 
-    private static func stringValue(for keys: [String], in dictionary: [String: Any]) -> String? {
+    nonisolated private static func stringValue(for keys: [String], in dictionary: [String: Any]) -> String? {
         for key in keys {
             if let value = dictionary[key] {
                 if let text = normalizedValue(value) {
@@ -361,7 +361,7 @@ enum ExternalProfileImporter {
         return nil
     }
 
-    private static func anyValue(for keys: [String], in dictionary: [String: Any]) -> Any? {
+    nonisolated private static func anyValue(for keys: [String], in dictionary: [String: Any]) -> Any? {
         for key in keys {
             if let value = dictionary[key] { return value }
         }
@@ -372,7 +372,7 @@ enum ExternalProfileImporter {
         return nil
     }
 
-    private static func normalizedValue(_ value: Any?) -> String? {
+    nonisolated private static func normalizedValue(_ value: Any?) -> String? {
         switch value {
         case let text as String:
             let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -384,7 +384,7 @@ enum ExternalProfileImporter {
         }
     }
 
-    private static func boolValue(_ value: Any?) -> Bool? {
+    nonisolated private static func boolValue(_ value: Any?) -> Bool? {
         guard let value else { return nil }
         if let boolValue = value as? Bool {
             return boolValue
@@ -405,7 +405,7 @@ enum ExternalProfileImporter {
         return nil
     }
 
-    private static func databaseType(from rawType: String?, fallback: String?) -> DatabaseType {
+    nonisolated private static func databaseType(from rawType: String?, fallback: String?) -> DatabaseType {
         let text = "\(rawType ?? "") \(fallback ?? "")".lowercased()
         if text.contains("postgre") || text.contains("pgsql") {
             return .postgresql
@@ -422,7 +422,7 @@ enum ExternalProfileImporter {
         return .mysql
     }
 
-    private static func defaultPort(for databaseType: DatabaseType) -> String {
+    nonisolated private static func defaultPort(for databaseType: DatabaseType) -> String {
         switch databaseType {
         case .postgresql: return "5432"
         case .mysql: return "3306"
@@ -432,7 +432,7 @@ enum ExternalProfileImporter {
         }
     }
 
-    private static func primaryDatabaseName(from raw: String?) -> String? {
+    nonisolated private static func primaryDatabaseName(from raw: String?) -> String? {
         guard let raw = normalizedValue(raw) else { return nil }
         for separator in [",", ";", "|"] {
             if let first = raw.components(separatedBy: separator).first {
@@ -445,7 +445,7 @@ enum ExternalProfileImporter {
         return raw
     }
 
-    private static func heidiFolderPath(from segments: [String]) -> [String] {
+    nonisolated private static func heidiFolderPath(from segments: [String]) -> [String] {
         guard segments.count >= 3 else { return [] }
 
         let normalized = segments.filter { $0.isEmpty == false }
@@ -456,7 +456,7 @@ enum ExternalProfileImporter {
         return Array(normalized.dropFirst().dropLast())
     }
 
-    private static func parseHeidiPassword(_ raw: String?) -> (plaintext: String?, encrypted: Bool) {
+    nonisolated private static func parseHeidiPassword(_ raw: String?) -> (plaintext: String?, encrypted: Bool) {
         guard let value = normalizedValue(raw) else {
             return (nil, false)
         }
@@ -475,7 +475,7 @@ enum ExternalProfileImporter {
         return (value, false)
     }
 
-    private static func heidiDecode(_ value: String) -> String {
+    nonisolated private static func heidiDecode(_ value: String) -> String {
         guard let lastChar = value.last,
               let shift = Int(String(lastChar)) else {
             return ""
