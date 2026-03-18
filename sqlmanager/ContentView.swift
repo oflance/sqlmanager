@@ -35,13 +35,22 @@ struct ContentView: View {
     @State private var hasLoadedPersistence = false
     @State private var persistenceSaveTask: DispatchWorkItem?
     @State private var dismissWelcomeForSession = false
-    @State private var pendingConnectionTasks: [UUID: DispatchWorkItem] = [:]
     @State private var lastQueryExecutionByTab: [UUID: Date] = [:]
+    @State private var queryTextByTab: [UUID: String] = [:]
+    @State private var queryResultSummaryByTab: [UUID: String] = [:]
+    @State private var queryResultByTab: [UUID: QueryExecutionResult] = [:]
+    @State private var connectionDiagnosticByTab: [UUID: String] = [:]
+    @State private var schemaSnapshotByTab: [UUID: SchemaSnapshot] = [:]
+    @State private var schemaLoadingByTab: [UUID: Bool] = [:]
+    @State private var selectedSchemaObjectPathByTab: [UUID: String] = [:]
     @State private var pendingManualImportSource: ProfileImportSource?
     @State private var isShowingManualImportPicker = false
     @State private var importFeedbackMessage = ""
     @State private var isShowingImportFeedback = false
+    @State private var runtimeErrorMessage = ""
+    @State private var isShowingRuntimeError = false
     private let persistence = SQLitePersistence()
+    private let connectionManager = ConnectionManager(adapterRegistry: .default)
 
     private var appLanguage: AppLanguage {
         get { AppLanguage(rawValue: appLanguageRaw) ?? .system }
@@ -88,6 +97,11 @@ struct ContentView: View {
             } message: {
                 Text(importFeedbackMessage)
             }
+            .alert("Connection Error", isPresented: $isShowingRuntimeError) {
+                Button(t("action.close"), role: .cancel) {}
+            } message: {
+                Text(runtimeErrorMessage)
+            }
     }
 
     private var contentWithPersistenceObservers: some View {
@@ -117,6 +131,9 @@ struct ContentView: View {
             .onDisappear {
                 persistenceSaveTask?.cancel()
                 persistNow()
+                Task {
+                    await connectionManager.disconnectAll()
+                }
             }
     }
 
@@ -229,13 +246,16 @@ struct ContentView: View {
     private var editorPane: some View {
         Group {
             if let selectedNodeID, let nodeBinding = bindingForNode(selectedNodeID) {
-                NodeEditor(
+                ProfileNodeEditorContainerView(
                     node: nodeBinding,
                     folderDestinations: folderDestinations(for: selectedNodeID),
                     currentParentID: findParentID(of: selectedNodeID),
                     onMoveToParent: { moveSelectedNode(selectedNodeID, toParentID: $0) },
                     onOpenConnection: {
                         openTab(for: nodeBinding.wrappedValue)
+                    },
+                    onTestProfileConnection: { profile, credential in
+                        try await connectionManager.testConnection(profile: profile, credential: credential)
                     }
                 )
             } else {
@@ -295,79 +315,47 @@ struct ContentView: View {
     private func connectionTabView(for tabID: UUID) -> some View {
         Group {
             if let tabBinding = bindingForTab(tabID) {
-                VStack(alignment: .leading, spacing: 14) {
-                    HStack {
-                        Text(tabBinding.wrappedValue.title)
-                            .font(.title3.weight(.semibold))
-                        Spacer()
-                        Button {
-                            close(tabID: tabID)
-                        } label: {
-                            Label(t("action.close"), systemImage: "xmark")
+                ConnectionWorkspaceView(
+                    tab: tabBinding.wrappedValue,
+                    appLanguage: appLanguage,
+                    runQueryShortcut: runQueryShortcut,
+                    diagnosticMessage: connectionDiagnosticByTab[tabID],
+                    querySummary: lastQueryExecutionByTab[tabID] == nil ? nil : (queryResultSummaryByTab[tabID] ?? t("action.query_executed")),
+                    schemaLoading: schemaLoadingByTab[tabID] == true,
+                    schemaObjects: schemaObjectsForBrowser(tabID: tabID),
+                    selectedSchemaPath: selectedSchemaObjectPathByTab[tabID],
+                    queryResult: queryResultByTab[tabID],
+                    suggestions: sqlSuggestions(for: tabID),
+                    t: t,
+                    queryText: queryBinding(for: tabID, databaseType: tabBinding.wrappedValue.databaseType),
+                    onClose: {
+                        close(tabID: tabID)
+                    },
+                    onToggleConnection: {
+                        toggleConnection(tabID: tabID)
+                    },
+                    onTestTCP: {
+                        testTCP(tabID: tabID)
+                    },
+                    onRunQuery: {
+                        runQuery(tabID: tabID)
+                    },
+                    onRefreshSchema: {
+                        refreshSchema(tabID: tabID)
+                    },
+                    onSelectSchemaObject: { objectPath in
+                        selectedSchemaObjectPathByTab[tabID] = objectPath
+                        if tabBinding.wrappedValue.status == .connected {
+                            previewRows(for: objectPath, tabID: tabID)
                         }
+                    },
+                    onPreviewRows: { objectPath in
+                        previewRows(for: objectPath, tabID: tabID)
+                    },
+                    onApplySuggestion: { suggestion in
+                        applySuggestion(suggestion, tabID: tabID)
                     }
-
-                    Text(tabBinding.wrappedValue.status.localized(language: appLanguage))
-                        .font(.caption.weight(.semibold))
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(tabBinding.wrappedValue.status.color.opacity(0.15))
-                        .clipShape(Capsule())
-
-                    Grid(alignment: .leading, horizontalSpacing: 24, verticalSpacing: 8) {
-                        GridRow {
-                            Text("\(t("field.database")):")
-                                .foregroundStyle(.secondary)
-                            Text(tabBinding.wrappedValue.databaseType.localized(language: appLanguage))
-                        }
-                        GridRow {
-                            Text("\(t("field.method")):")
-                                .foregroundStyle(.secondary)
-                            Text(tabBinding.wrappedValue.connectionMethod.localized(language: appLanguage))
-                        }
-                        GridRow {
-                            Text("\(t("field.ssl")):")
-                                .foregroundStyle(.secondary)
-                            Text(tabBinding.wrappedValue.useSSL ? t("value.enabled") : t("value.disabled"))
-                        }
-                        GridRow {
-                            Text("\(t("field.timeout")):")
-                                .foregroundStyle(.secondary)
-                            Text("\(tabBinding.wrappedValue.timeoutSeconds)s")
-                        }
-                    }
-
-                    HStack(spacing: 10) {
-                        Button(connectButtonTitle(for: tabBinding.wrappedValue.status)) {
-                            toggleConnection(tabID: tabID)
-                        }
-                        .buttonStyle(.borderedProminent)
-
-                        if runQueryShortcut {
-                            Button(t("action.run_query")) {
-                                runQuery(tabID: tabID)
-                            }
-                            .buttonStyle(.bordered)
-                            .keyboardShortcut(.return, modifiers: [.command])
-                            .disabled(tabBinding.wrappedValue.status != .connected)
-                        } else {
-                            Button(t("action.run_query")) {
-                                runQuery(tabID: tabID)
-                            }
-                            .buttonStyle(.bordered)
-                            .disabled(tabBinding.wrappedValue.status != .connected)
-                        }
-                    }
-
-                    if lastQueryExecutionByTab[tabID] != nil {
-                        Text(t("action.query_executed"))
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-
-                    Spacer()
-                }
-                .padding()
+                )
             } else {
                 ContentUnavailableView(t("tab.connection_not_found"), systemImage: "exclamationmark.triangle")
             }
@@ -623,9 +611,19 @@ struct ContentView: View {
     }
 
     private func deleteNode(_ nodeID: UUID) {
-        cancelPendingConnect(for: nodeID)
+        let tabIDs = openTabs.filter { $0.profileID == nodeID }.map(\.id)
+        for tabID in tabIDs {
+            Task {
+                await connectionManager.disconnect(tabID: tabID)
+            }
+        }
         remove(nodeID, from: &tree)
         openTabs.removeAll(where: { $0.profileID == nodeID })
+        for tabID in tabIDs {
+            lastQueryExecutionByTab.removeValue(forKey: tabID)
+            queryTextByTab.removeValue(forKey: tabID)
+            queryResultSummaryByTab.removeValue(forKey: tabID)
+        }
         if case .connection(let activeID) = selectedRootTab, openTabs.contains(where: { $0.id == activeID }) == false {
             selectedRootTab = .profiles
         }
@@ -668,9 +666,18 @@ struct ContentView: View {
     }
 
     private func close(tabID: UUID) {
-        cancelPendingConnect(tabID: tabID)
+        Task {
+            await connectionManager.disconnect(tabID: tabID)
+        }
         openTabs.removeAll(where: { $0.id == tabID })
         lastQueryExecutionByTab.removeValue(forKey: tabID)
+        queryTextByTab.removeValue(forKey: tabID)
+        queryResultSummaryByTab.removeValue(forKey: tabID)
+        queryResultByTab.removeValue(forKey: tabID)
+        connectionDiagnosticByTab.removeValue(forKey: tabID)
+        schemaSnapshotByTab.removeValue(forKey: tabID)
+        schemaLoadingByTab.removeValue(forKey: tabID)
+        selectedSchemaObjectPathByTab.removeValue(forKey: tabID)
         if case .connection(let selectedID) = selectedRootTab, selectedID == tabID {
             selectedRootTab = .profiles
         }
@@ -680,24 +687,70 @@ struct ContentView: View {
         guard let index = openTabs.firstIndex(where: { $0.id == tabID }) else { return }
         switch openTabs[index].status {
         case .connected:
-            cancelPendingConnect(tabID: tabID)
             openTabs[index].status = .disconnected
-        case .disconnected:
-            cancelPendingConnect(tabID: tabID)
-            openTabs[index].status = .connecting
-            let task = DispatchWorkItem {
-                guard let idx = openTabs.firstIndex(where: { $0.id == tabID }) else { return }
-                if openTabs[idx].status == .connecting {
-                    openTabs[idx].status = .connected
-                }
-                pendingConnectionTasks.removeValue(forKey: tabID)
+            Task {
+                await connectionManager.disconnect(tabID: tabID)
+                schemaSnapshotByTab[tabID] = nil
+                schemaLoadingByTab[tabID] = nil
+                selectedSchemaObjectPathByTab[tabID] = nil
             }
-            pendingConnectionTasks[tabID] = task
-            let delay = min(max(Double(openTabs[index].timeoutSeconds) / 20.0, 0.25), 3.0)
-            DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: task)
+        case .disconnected:
+            guard let profile = findNode(openTabs[index].profileID, in: tree) else {
+                presentRuntimeError(DatabaseAdapterError.configurationInvalid(reason: "Profile not found"))
+                return
+            }
+            openTabs[index].status = .connecting
+            Task {
+                do {
+                    let credential: DatabaseCredential
+                    if let password = PasswordKeychain.loadPassword(forProfileID: profile.id),
+                       password.isEmpty == false
+                    {
+                        credential = .password(password)
+                    } else {
+                        credential = .none
+                    }
+
+                    try await connectionManager.connect(tabID: tabID, profile: profile, credential: credential)
+                    guard let idx = openTabs.firstIndex(where: { $0.id == tabID }) else { return }
+                    if openTabs[idx].status == .connecting {
+                        openTabs[idx].status = .connected
+                        connectionDiagnosticByTab[tabID] = nil
+                    }
+                    await loadSchema(tabID: tabID)
+                } catch {
+                    guard let idx = openTabs.firstIndex(where: { $0.id == tabID }) else { return }
+                    openTabs[idx].status = .disconnected
+                    presentRuntimeError(error)
+                }
+            }
         case .connecting:
-            cancelPendingConnect(tabID: tabID)
             openTabs[index].status = .disconnected
+            Task {
+                await connectionManager.disconnect(tabID: tabID)
+                schemaSnapshotByTab[tabID] = nil
+                schemaLoadingByTab[tabID] = nil
+                selectedSchemaObjectPathByTab[tabID] = nil
+            }
+        }
+    }
+
+    private func testTCP(tabID: UUID) {
+        guard let tab = openTabs.first(where: { $0.id == tabID }) else { return }
+        guard let profile = findNode(tab.profileID, in: tree) else {
+            presentRuntimeError(DatabaseAdapterError.configurationInvalid(reason: "Profile not found"))
+            return
+        }
+
+        connectionDiagnosticByTab[tabID] = t("status.testing_tcp")
+        Task {
+            do {
+                let endpoint = try await connectionManager.testTCP(profile: profile)
+                connectionDiagnosticByTab[tabID] = "\(t("status.tcp_ok")) \(endpoint)"
+            } catch {
+                let text = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+                connectionDiagnosticByTab[tabID] = text
+            }
         }
     }
 
@@ -753,16 +806,119 @@ struct ContentView: View {
 
     private func runQuery(tabID: UUID) {
         guard let tab = openTabs.first(where: { $0.id == tabID }), tab.status == .connected else { return }
-        lastQueryExecutionByTab[tabID] = Date()
+        let sql = queryTextByTab[tabID]?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
+            ? (queryTextByTab[tabID] ?? "")
+            : defaultQuery(for: tab.databaseType)
+        Task {
+            do {
+                let result = try await connectionManager.execute(tabID: tabID, sql: sql)
+                lastQueryExecutionByTab[tabID] = Date()
+                queryResultByTab[tabID] = result
+                queryResultSummaryByTab[tabID] = summarize(result: result)
+            } catch {
+                presentRuntimeError(error)
+            }
+        }
     }
 
-    private func connectButtonTitle(for status: ConnectionStatus) -> String {
-        switch status {
-        case .connected, .connecting:
-            return t("action.disconnect")
-        case .disconnected:
-            return t("action.connect")
+    private func refreshSchema(tabID: UUID) {
+        Task {
+            await loadSchema(tabID: tabID)
         }
+    }
+
+    private func loadSchema(tabID: UUID) async {
+        schemaLoadingByTab[tabID] = true
+        defer { schemaLoadingByTab[tabID] = false }
+        do {
+            let snapshot = try await connectionManager.introspect(tabID: tabID)
+            schemaSnapshotByTab[tabID] = snapshot
+            if let existing = selectedSchemaObjectPathByTab[tabID],
+               snapshot.objects.contains(where: { $0.path == existing }) == false
+            {
+                selectedSchemaObjectPathByTab[tabID] = nil
+            }
+        } catch {
+            connectionDiagnosticByTab[tabID] = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+        }
+    }
+
+    private func schemaObjectsForBrowser(tabID: UUID) -> [SchemaObject] {
+        guard let snapshot = schemaSnapshotByTab[tabID] else { return [] }
+        return snapshot.objects
+            .filter { $0.kind == .table || $0.kind == .view }
+            .sorted { $0.path < $1.path }
+    }
+
+    private func previewRows(for objectPath: String, tabID: UUID) {
+        queryTextByTab[tabID] = "SELECT * FROM \(objectPath) LIMIT 100;"
+        runQuery(tabID: tabID)
+    }
+
+    private func queryBinding(for tabID: UUID, databaseType: DatabaseType) -> Binding<String> {
+        Binding(
+            get: {
+                queryTextByTab[tabID] ?? defaultQuery(for: databaseType)
+            },
+            set: { newValue in
+                queryTextByTab[tabID] = newValue
+            }
+        )
+    }
+
+    private func sqlSuggestions(for tabID: UUID) -> [String] {
+        let text = queryTextByTab[tabID] ?? ""
+        let keywords = [
+            "SELECT", "FROM", "WHERE", "JOIN", "ORDER BY", "GROUP BY", "LIMIT",
+            "INSERT INTO", "UPDATE", "DELETE FROM", "CREATE TABLE"
+        ]
+        let tableNames = schemaObjectsForBrowser(tabID: tabID).map(\.path)
+
+        let source = text.isEmpty ? keywords + tableNames : tableNames + keywords
+        var unique: [String] = []
+        var seen = Set<String>()
+        for item in source {
+            if seen.insert(item).inserted {
+                unique.append(item)
+            }
+            if unique.count >= 8 {
+                break
+            }
+        }
+        return unique
+    }
+
+    private func applySuggestion(_ suggestion: String, tabID: UUID) {
+        let current = queryTextByTab[tabID] ?? ""
+        if current.isEmpty {
+            queryTextByTab[tabID] = "\(suggestion) "
+        } else if current.hasSuffix(" ") || current.hasSuffix("\n") {
+            queryTextByTab[tabID] = current + suggestion + " "
+        } else {
+            queryTextByTab[tabID] = current + " " + suggestion + " "
+        }
+    }
+
+    private func defaultQuery(for databaseType: DatabaseType) -> String {
+        switch databaseType {
+        case .sqlite:
+            return "SELECT name, type FROM sqlite_master ORDER BY type, name LIMIT 25;"
+        case .postgresql:
+            return "SELECT NOW() AS current_time;"
+        case .mysql:
+            return "SELECT NOW() AS current_time;"
+        case .mssql:
+            return "SELECT GETDATE() AS current_time;"
+        case .oracle:
+            return "SELECT CURRENT_TIMESTAMP AS current_time FROM dual"
+        }
+    }
+
+    private func summarize(result: QueryExecutionResult) -> String {
+        if let affectedRows = result.affectedRows {
+            return "\(t("query.result.affected")): \(affectedRows), \(t("query.result.duration")): \(result.durationMs) ms"
+        }
+        return "\(t("query.result.rows")): \(result.rows.count), \(t("query.result.duration")): \(result.durationMs) ms"
     }
 
     private func tabStatusIcon(_ status: ConnectionStatus) -> String {
@@ -776,16 +932,13 @@ struct ContentView: View {
         }
     }
 
-    private func cancelPendingConnect(tabID: UUID) {
-        pendingConnectionTasks[tabID]?.cancel()
-        pendingConnectionTasks.removeValue(forKey: tabID)
-    }
-
-    private func cancelPendingConnect(for profileID: UUID) {
-        let tabIDs = openTabs.filter { $0.profileID == profileID }.map(\.id)
-        for tabID in tabIDs {
-            cancelPendingConnect(tabID: tabID)
+    private func presentRuntimeError(_ error: Error) {
+        if let localized = (error as? LocalizedError)?.errorDescription, localized.isEmpty == false {
+            runtimeErrorMessage = localized
+        } else {
+            runtimeErrorMessage = error.localizedDescription
         }
+        isShowingRuntimeError = true
     }
 
     private func loadPersistenceIfNeeded() {

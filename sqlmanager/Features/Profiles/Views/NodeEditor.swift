@@ -14,10 +14,16 @@ struct NodeEditor: View {
 
     @AppStorage("appLanguage") private var appLanguageRaw = AppLanguage.system.rawValue
     @Binding var node: ConnectionNode
+    @State private var passwordDraft = ""
+    @State private var isSyncingPassword = false
+    @State private var isTestingConnection = false
+    @State private var connectionTestMessage: String?
+    @State private var connectionTestSucceeded = false
     let folderDestinations: [FolderDestination]
     let currentParentID: UUID?
     let onMoveToParent: (UUID?) -> Void
     let onOpenConnection: () -> Void
+    let onTestConnection: () async throws -> Void
 
     private let iconOptions = [
         "folder", "folder.fill", "server.rack", "cylinder", "externaldrive.connected.to.line.below", "network", "bolt.horizontal.circle"
@@ -132,6 +138,7 @@ struct NodeEditor: View {
                     TextField(t("field.port"), text: $node.port)
                     TextField(t("field.database"), text: $node.database)
                     TextField(t("field.username"), text: $node.username)
+                    SecureField(t("field.password"), text: $passwordDraft)
                     Toggle(t("settings.use_ssl"), isOn: $node.useSSL)
                     Stepper(
                         "\(t("settings.timeout_seconds")): \(node.timeoutSeconds)s",
@@ -142,14 +149,49 @@ struct NodeEditor: View {
                 }
 
                 Section {
+                    Button(t("action.test_connection")) {
+                        runConnectionTest()
+                    }
+                    .buttonStyle(.bordered)
+                    .disabled(isTestingConnection)
+
                     Button(t("action.open_in_tab")) {
                         onOpenConnection()
                     }
                     .buttonStyle(.borderedProminent)
+                    .disabled(isTestingConnection)
+
+                    if let connectionTestMessage, connectionTestMessage.isEmpty == false {
+                        Text(connectionTestMessage)
+                            .font(.caption)
+                            .foregroundStyle(connectionTestSucceeded ? .green : .secondary)
+                    }
                 }
             }
         }
         .formStyle(.grouped)
+        .onAppear {
+            syncPasswordFromKeychain()
+        }
+        .onChange(of: node.id) { _, _ in
+            syncPasswordFromKeychain()
+        }
+        .onChange(of: passwordDraft) { _, newValue in
+            guard isSyncingPassword == false else { return }
+            if newValue.isEmpty {
+                _ = PasswordKeychain.deletePassword(forProfileID: node.id)
+            } else {
+                _ = PasswordKeychain.save(password: newValue, forProfileID: node.id)
+            }
+        }
+        .onChange(of: node.host) { _, _ in connectionTestMessage = nil }
+        .onChange(of: node.port) { _, _ in connectionTestMessage = nil }
+        .onChange(of: node.database) { _, _ in connectionTestMessage = nil }
+        .onChange(of: node.username) { _, _ in connectionTestMessage = nil }
+        .onChange(of: node.databaseType) { _, _ in connectionTestMessage = nil }
+        .onChange(of: node.connectionMethod) { _, _ in connectionTestMessage = nil }
+        .onChange(of: node.useSSL) { _, _ in connectionTestMessage = nil }
+        .onChange(of: passwordDraft) { _, _ in connectionTestMessage = nil }
     }
 
     private var moveParentBinding: Binding<UUID?> {
@@ -161,5 +203,29 @@ struct NodeEditor: View {
                 }
             }
         )
+    }
+
+    private func syncPasswordFromKeychain() {
+        isSyncingPassword = true
+        passwordDraft = PasswordKeychain.loadPassword(forProfileID: node.id) ?? ""
+        isSyncingPassword = false
+    }
+
+    private func runConnectionTest() {
+        isTestingConnection = true
+        connectionTestSucceeded = false
+        connectionTestMessage = t("status.testing_connection")
+
+        Task {
+            do {
+                try await onTestConnection()
+                connectionTestSucceeded = true
+                connectionTestMessage = t("status.connection_ok")
+            } catch {
+                connectionTestSucceeded = false
+                connectionTestMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+            }
+            isTestingConnection = false
+        }
     }
 }

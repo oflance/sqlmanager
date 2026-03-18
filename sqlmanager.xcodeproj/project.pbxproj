@@ -6,6 +6,11 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		7A9E10012F70000100A10001 /* PostgresNIO in Frameworks */ = {isa = PBXBuildFile; productRef = 7A9E10002F70000100A10001 /* PostgresNIO */; };
+		7A9E10112F70000200A10001 /* MySQLNIO in Frameworks */ = {isa = PBXBuildFile; productRef = 7A9E10102F70000200A10001 /* MySQLNIO */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		5735B43C2F69FD8400FD6A27 /* LICENSE */ = {isa = PBXFileReference; lastKnownFileType = text; path = LICENSE; sourceTree = "<group>"; };
 		5786ED622F66C7B10046AA91 /* SQL Manager.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "SQL Manager.app"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -24,6 +29,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				7A9E10112F70000200A10001 /* MySQLNIO in Frameworks */,
+				7A9E10012F70000100A10001 /* PostgresNIO in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -67,6 +74,8 @@
 			);
 			name = "SQL Manager";
 			packageProductDependencies = (
+				7A9E10102F70000200A10001 /* MySQLNIO */,
+				7A9E10002F70000100A10001 /* PostgresNIO */,
 			);
 			productName = sqlmanager;
 			productReference = 5786ED622F66C7B10046AA91 /* SQL Manager.app */;
@@ -99,6 +108,10 @@
 			);
 			mainGroup = 5786ED592F66C7B10046AA91;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				7A9E10122F70000200A10001 /* XCRemoteSwiftPackageReference "mysql-nio" */,
+				7A9E10022F70000100A10001 /* XCRemoteSwiftPackageReference "postgres-nio" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 5786ED632F66C7B10046AA91 /* Products */;
 			projectDirPath = "";
@@ -256,6 +269,7 @@
 				DEVELOPMENT_TEAM = 78MV8CF6J7;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -306,6 +320,7 @@
 				DEVELOPMENT_TEAM = 78MV8CF6J7;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -368,6 +383,38 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		7A9E10022F70000100A10001 /* XCRemoteSwiftPackageReference "postgres-nio" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/vapor/postgres-nio.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.30.0;
+			};
+		};
+		7A9E10122F70000200A10001 /* XCRemoteSwiftPackageReference "mysql-nio" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/vapor/mysql-nio.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.9.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		7A9E10002F70000100A10001 /* PostgresNIO */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 7A9E10022F70000100A10001 /* XCRemoteSwiftPackageReference "postgres-nio" */;
+			productName = PostgresNIO;
+		};
+		7A9E10102F70000200A10001 /* MySQLNIO */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 7A9E10122F70000200A10001 /* XCRemoteSwiftPackageReference "mysql-nio" */;
+			productName = MySQLNIO;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 5786ED5A2F66C7B10046AA91 /* Project object */;
 }
